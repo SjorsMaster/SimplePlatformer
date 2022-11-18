@@ -6,8 +6,7 @@ using System.Reflection;
 using Cinemachine;
 
 [RequireComponent(typeof(ParticleSystem))]
-public class EmitParticlesOnLand : MonoBehaviour
-{
+public class EmitParticlesOnLand : MonoBehaviour {
 
     public bool emitOnLand = true;
     public bool emitOnEnemyDeath = true;
@@ -15,11 +14,10 @@ public class EmitParticlesOnLand : MonoBehaviour
 #if UNITY_TEMPLATE_PLATFORMER
 
     public CinemachineVirtualCamera vcam;
-    public float _time =.5f;
+    public float _time = .5f;
     ParticleSystem p;
 
-    void Start()
-    {
+    void Start() {
         p = GetComponent<ParticleSystem>();
 
         if (emitOnLand) {
@@ -40,19 +38,16 @@ public class EmitParticlesOnLand : MonoBehaviour
     }
 
 
- 
-    private IEnumerator _ProcessShake(float shakeIntensity = 5f, float shakeTiming = 0.5f)
-    {
-vcam.GetCinemachineComponent<CinemachineBasicMultiChannelPerlin>().m_AmplitudeGain = 1;
-Time.timeScale = Mathf.Lerp(Time.timeScale,0.5f,Time.time);
-vcam.m_Lens.OrthographicSize = 3.7f;
+
+    private IEnumerator _ProcessShake(float shakeIntensity = 5f, float shakeTiming = 0.5f) {
+        vcam.GetCinemachineComponent<CinemachineBasicMultiChannelPerlin>().m_AmplitudeGain = 3;
+        Time.timeScale = Mathf.Lerp(Time.timeScale, 0.5f, Time.time);
         yield return new WaitForSeconds(_time);
-vcam.m_Lens.OrthographicSize = 3.8f;
-vcam.GetCinemachineComponent<CinemachineBasicMultiChannelPerlin>().m_AmplitudeGain = 0;
-Time.timeScale = Mathf.Lerp(Time.timeScale,1f,Time.time);
+        vcam.GetCinemachineComponent<CinemachineBasicMultiChannelPerlin>().m_AmplitudeGain = 0;
+        Time.timeScale = Mathf.Lerp(Time.timeScale, 1f, Time.time);
     }
 
- 
+
 
 #endif
 

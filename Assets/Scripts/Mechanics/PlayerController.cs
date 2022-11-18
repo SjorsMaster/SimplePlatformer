@@ -4,25 +4,26 @@ using UnityEngine;
 using Platformer.Gameplay;
 using static Platformer.Core.Simulation;
 using Platformer.Model;
+using Cinemachine;
 using Platformer.Core;
-    
-namespace Platformer.Mechanics
-{
+
+namespace Platformer.Mechanics {
     /// <summary>
     /// This is the main class used to implement control of the player.
     /// It is a superset of the AnimationController class, but is inlined to allow for any kind of customisation.
     /// </summary>
-    public class PlayerController : KinematicObject
-    {
+    public class PlayerController : KinematicObject {
         public bool noCharge = false;
         public AudioClip jumpAudio;
         public AudioClip respawnAudio;
         public AudioClip ouchAudio;
 
+        public CinemachineVirtualCamera vcam;
+        public float camZoomA = 3.7f, camZoomB = 3.8f;
         /// <summary>
         /// Max horizontal speed of the player.
         /// </summary>
-        public float maxSpeed = 7, multiplier = 1, maxCharge = 2, charge, chargeStart = .1f, runTime, timeBeforeRun = 3, runMultiplier = 1.25f, chargeAnim = 3, beforeRun=2, scalingOffset = 100;
+        public float maxSpeed = 7, multiplier = 1, maxCharge = 2, charge, chargeStart = .1f, runTime, timeBeforeRun = 3, runMultiplier = 1.25f, chargeAnim = 3, beforeRun = 2, scalingOffset = 100;
         /// <summary>
         /// Initial jump velocity at the start of a jump.
         /// </summary>
@@ -30,8 +31,10 @@ namespace Platformer.Mechanics
 
         public JumpState jumpState = JumpState.Grounded;
         private bool stopJump, chargingJump;
-        /*internal new*/ public Collider2D collider2d;
-        /*internal new*/ public AudioSource audioSource;
+        /*internal new*/
+        public Collider2D collider2d;
+        /*internal new*/
+        public AudioSource audioSource;
         public Health health;
         public bool controlEnabled = true, speedSmoke;
 
@@ -53,8 +56,7 @@ namespace Platformer.Mechanics
 
 
 
-        void Awake()
-        {
+        void Awake() {
             health = GetComponent<Health>();
             audioSource = GetComponent<AudioSource>();
             collider2d = GetComponent<Collider2D>();
@@ -65,23 +67,19 @@ namespace Platformer.Mechanics
             charge = chargeStart;
         }
 
-        protected override void Update()
-        {
-            if (controlEnabled)
-            {
-                float vel=Mathf.Abs(velocity.y);
-                
-                spriteChar.localScale = new Vector3(1,1+vel/scalingOffset,1);
-
+        protected override void Update() {
+            float vel = Mathf.Abs(velocity.y);
+            spriteChar.localScale = new Vector3(1, 1 + vel / scalingOffset, 1);
+            if (controlEnabled) {
                 float playerInput = Input.GetAxis("Horizontal");
                 bool falling = Mathf.Abs(vel) != 0f;
-                
-                if(!noCharge){
-                    if (chargingJump /* && !falling*/){
+
+                if (!noCharge) {
+                    if (chargingJump /* && !falling*/) {
                         charge = charge >= maxCharge ? maxCharge : charge + multiplier * Time.deltaTime;
-                        spriteRenderer.color = Color.Lerp(defaultColor, chargedColor, Mathf.PingPong(chargeAnim,(charge - chargeStart)/(maxCharge - chargeStart)));
+                        spriteRenderer.color = Color.Lerp(defaultColor, chargedColor, Mathf.PingPong(chargeAnim, (charge - chargeStart) / (maxCharge - chargeStart)));
                     }
-                    else{
+                    else {
                         spriteRenderer.color = defaultColor;
                         charge = chargeStart;
                     }
@@ -90,65 +88,68 @@ namespace Platformer.Mechanics
                 move.x = playerInput;
                 if (/*jumpState == JumpState.Grounded &&*/ Input.GetButton("Jump") /*&& falling*/)
                     chargingJump = true;
-                if ((Input.GetButtonUp("Jump") && (chargingJump)) || (!falling && noCharge && Input.GetButton("Jump"))){
-                    if(noCharge)
+                if ((Input.GetButtonUp("Jump") && (chargingJump)) || (!falling && noCharge && Input.GetButton("Jump"))) {
+                    if (noCharge)
                         charge = 1;
-                    if(!falling && jumpState == JumpState.Grounded ){
+                    if (!falling && jumpState == JumpState.Grounded) {
                         jumpState = JumpState.PrepareToJump;
                     }
-                    else{
+                    else {
                         charge = chargeStart;
                     }
                     chargingJump = false;
                 }
-                else if (Input.GetButtonUp("Jump"))
-                {
+                else if (Input.GetButtonUp("Jump")) {
                     stopJump = true;
                     Schedule<PlayerStopJump>().player = this;
                 }
-                
-                
-                if(Mathf.Abs(playerInput) >= 1 && IsGrounded && !falling){
-                    if(runTime == 10){
+
+
+                if (Mathf.Abs(playerInput) >= 1 && IsGrounded && !falling) {
+                    if (runTime == 10) {
                         runTime = 11;
                     }
-                    else if (runTime == 11){
-                        if(speedSmoke) 
+                    else if (runTime == 11) {
+                        if (speedSmoke)
                             speedClouds.Play();
+                        vcam.m_Lens.OrthographicSize = Mathf.Lerp(vcam.m_Lens.OrthographicSize, camZoomB, Time.deltaTime);
+
                         //Nothing!
                     }
-                    else if(runTime >= timeBeforeRun && runTime < 10){
+                    else if (runTime >= timeBeforeRun && runTime < 10) {
                         maxSpeed = defaultMaxSpeed * runMultiplier;
                         runTime = 10;
                     }
-                    else{
+                    else {
                         runTime += Time.deltaTime;
                     }
 
-                    if(runTime >= timeBeforeRun/beforeRun && runTime < 10){
+                    if (runTime >= timeBeforeRun / beforeRun && runTime < 10) {
                         burstClouds.Play();
-                        maxSpeed = Mathf.Lerp(maxSpeed, defaultMaxSpeed * runMultiplier, runTime-timeBeforeRun/beforeRun);
+                        maxSpeed = Mathf.Lerp(maxSpeed, defaultMaxSpeed * runMultiplier, runTime - timeBeforeRun / beforeRun);
                     }
                 }
-                else if(Mathf.Abs(playerInput) >= 1 && (!IsGrounded || falling)){
-                    if(runTime < 10){
+                else if (Mathf.Abs(playerInput) >= 1 && (!IsGrounded || falling)) {
+                    if (runTime < 10) {
+                        vcam.m_Lens.OrthographicSize = Mathf.Lerp(vcam.m_Lens.OrthographicSize, camZoomA, Time.deltaTime);
                         runTime = 0;
                         maxSpeed = defaultMaxSpeed;
                     }
-                    else{
-                        if(speedSmoke) 
+                    else {
+                        if (speedSmoke)
                             speedClouds.Play();
                     }
                 }
-                else{
-                    if(IsGrounded || falling){
+                else {
+                    if (IsGrounded || falling) {
                         maxSpeed = defaultMaxSpeed;
                         runTime = 0;
+                        vcam.m_Lens.OrthographicSize = Mathf.Lerp(vcam.m_Lens.OrthographicSize, camZoomA, Time.deltaTime);
                     }
                 }
             }
-            else
-            {
+            else {
+                vcam.m_Lens.OrthographicSize = Mathf.Lerp(vcam.m_Lens.OrthographicSize, camZoomA, Time.deltaTime);
                 chargingJump = false;
                 charge = chargeStart;
                 spriteRenderer.color = defaultColor;
@@ -160,26 +161,22 @@ namespace Platformer.Mechanics
             base.Update();
         }
 
-        void UpdateJumpState()
-        {
+        void UpdateJumpState() {
             jump = false;
-            switch (jumpState)
-            {
+            switch (jumpState) {
                 case JumpState.PrepareToJump:
                     jumpState = JumpState.Jumping;
                     jump = true;
                     stopJump = false;
                     break;
                 case JumpState.Jumping:
-                    if (!IsGrounded)
-                    {
+                    if (!IsGrounded) {
                         Schedule<PlayerJumped>().player = this;
                         jumpState = JumpState.InFlight;
                     }
                     break;
                 case JumpState.InFlight:
-                    if (IsGrounded)
-                    {
+                    if (IsGrounded) {
                         Schedule<PlayerLanded>().player = this;
                         jumpState = JumpState.Landed;
                     }
@@ -192,18 +189,14 @@ namespace Platformer.Mechanics
             }
         }
 
-        protected override void ComputeVelocity()
-        {
-            if (jump && IsGrounded)
-            {
+        protected override void ComputeVelocity() {
+            if (jump && IsGrounded) {
                 velocity.y = jumpTakeOffSpeed * model.jumpModifier * charge;
                 jump = false;
             }
-            else if (stopJump)
-            {
+            else if (stopJump) {
                 stopJump = false;
-                if (velocity.y > 0)
-                {
+                if (velocity.y > 0) {
                     velocity.y = velocity.y * model.jumpDeceleration;
                 }
             }
@@ -220,8 +213,7 @@ namespace Platformer.Mechanics
             targetVelocity = move * maxSpeed;
         }
 
-        public enum JumpState
-        {
+        public enum JumpState {
             Grounded,
             PrepareToJump,
             Jumping,
