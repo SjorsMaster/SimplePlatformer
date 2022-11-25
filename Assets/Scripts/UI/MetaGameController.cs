@@ -10,6 +10,7 @@ namespace Platformer.UI
     /// </summary>
     public class MetaGameController : MonoBehaviour
     {
+        public bool menuEnabled;
         /// <summary>
         /// The main UI object which used for the menu.
         /// </summary>
@@ -40,6 +41,7 @@ namespace Platformer.UI
         {
             if (this.showMainCanvas != show)
             {
+                if(menuEnabled)
                 _ToggleMainMenu(show);
             }
         }

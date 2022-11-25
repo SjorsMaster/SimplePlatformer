@@ -12,6 +12,9 @@ namespace Platformer.Mechanics
     /// </summary>
     public class DeathZone : MonoBehaviour
     {
+        public bool quitGame;
+        public GameObject cam;
+
         void OnTriggerEnter2D(Collider2D collider)
         {
             var p = collider.gameObject.GetComponent<PlayerController>();
@@ -19,6 +22,11 @@ namespace Platformer.Mechanics
             {
                 var ev = Schedule<PlayerEnteredDeathZone>();
                 ev.deathzone = this;
+                if (quitGame) {
+                    Application.Quit();
+                    if (cam) Destroy(cam);
+                    Time.timeScale = 0;
+                }
             }
         }
     }

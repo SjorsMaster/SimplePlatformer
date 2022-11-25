@@ -9,6 +9,7 @@ namespace Platformer.Mechanics
     /// </summary>
     public class KinematicObject : MonoBehaviour
     {
+        Vector3 lastPos;
         /// <summary>
         /// The minimum normal (dot product) considered suitable for the entity sit on.
         /// </summary>
@@ -161,8 +162,13 @@ namespace Platformer.Mechanics
                     else
                     {
                         //We are airborne, but hit something, so cancel vertical up and horizontal velocity.
-                        velocity.x *= 0;
-                        velocity.y = Mathf.Min(velocity.y, 0);
+                        //velocity.x *= 0;
+                        //velocity.y = Mathf.Min(velocity.y, 0);
+
+                        //A quick but gross fix for wall clipping
+                        if(transform.position.y == lastPos.y && velocity.y > 0.1f)
+                            velocity.y = 0;
+                        lastPos = transform.position;
                     }
                     //remove shellDistance from actual move distance.
                     var modifiedDistance = hitBuffer[i].distance - shellRadius;

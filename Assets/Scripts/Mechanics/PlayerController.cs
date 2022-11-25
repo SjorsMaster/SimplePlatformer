@@ -17,17 +17,18 @@ namespace Platformer.Mechanics {
         public AudioClip jumpAudio;
         public AudioClip respawnAudio;
         public AudioClip ouchAudio;
+        public bool LimitVelocity = false;
 
         public CinemachineVirtualCamera vcam;
         public float camZoomA = 3.7f, camZoomB = 3.8f;
         /// <summary>
         /// Max horizontal speed of the player.
         /// </summary>
-        public float maxSpeed = 7, multiplier = 1, maxCharge = 2, charge, chargeStart = .1f, runTime, timeBeforeRun = 3, runMultiplier = 1.25f, chargeAnim = 3, beforeRun = 2, scalingOffset = 100;
+        public float flipSpeed = 10, maxSpeed = 7, multiplier = 1, maxCharge = 2, charge, chargeStart = .1f, runTime, timeBeforeRun = 3, runMultiplier = 1.25f, chargeAnim = 3, beforeRun = 2, scalingOffset = 100;
         /// <summary>
         /// Initial jump velocity at the start of a jump.
         /// </summary>
-        public float jumpTakeOffSpeed = 7;
+        public float jumpTakeOffSpeed = 7, currentFlip = 1;
 
         public JumpState jumpState = JumpState.Grounded;
         private bool stopJump, chargingJump;
@@ -54,7 +55,11 @@ namespace Platformer.Mechanics {
 
         public Bounds Bounds => collider2d.bounds;
 
+        public void MoveCharacter(GameObject target) {
+            transform.position = target.transform.position;
+        }
 
+        float coyoteTime, maxCoyotime = 2;
 
         void Awake() {
             health = GetComponent<Health>();
@@ -68,8 +73,16 @@ namespace Platformer.Mechanics {
         }
 
         protected override void Update() {
+            if (!Application.isFocused) 
+                Time.timeScale = 0;
+            else 
+                Time.timeScale = 1;
+
+            if (LimitVelocity&& velocity.y < -14)
+                    velocity.y = -14;
+
             float vel = Mathf.Abs(velocity.y);
-            spriteChar.localScale = new Vector3(1, 1 + vel / scalingOffset, 1);
+            spriteChar.localScale = new Vector3(spriteChar.localScale.x, 1 + vel / scalingOffset, 1);
             if (controlEnabled) {
                 float playerInput = Input.GetAxis("Horizontal");
                 bool falling = Mathf.Abs(vel) != 0f;
@@ -105,7 +118,7 @@ namespace Platformer.Mechanics {
                 }
 
 
-                if (Mathf.Abs(playerInput) >= 1 && IsGrounded && !falling) {
+                if (Mathf.Abs(playerInput) >= 1 && (IsGrounded && !falling)) {
                     if (runTime == 10) {
                         runTime = 11;
                     }
@@ -113,8 +126,6 @@ namespace Platformer.Mechanics {
                         if (speedSmoke)
                             speedClouds.Play();
                         vcam.m_Lens.OrthographicSize = Mathf.Lerp(vcam.m_Lens.OrthographicSize, camZoomB, Time.deltaTime);
-
-                        //Nothing!
                     }
                     else if (runTime >= timeBeforeRun && runTime < 10) {
                         maxSpeed = defaultMaxSpeed * runMultiplier;
@@ -176,12 +187,14 @@ namespace Platformer.Mechanics {
                     }
                     break;
                 case JumpState.InFlight:
+                    coyoteTime += Time.deltaTime;
                     if (IsGrounded) {
                         Schedule<PlayerLanded>().player = this;
                         jumpState = JumpState.Landed;
                     }
                     break;
                 case JumpState.Landed:
+                    coyoteTime = 0;
                     //chargingJump = false;
                     //charge = chargeStart;
                     jumpState = JumpState.Grounded;
@@ -202,10 +215,11 @@ namespace Platformer.Mechanics {
             }
 
             if (move.x > 0.01f)
-                spriteRenderer.flipX = false;
+                currentFlip = 1;
             else if (move.x < -0.01f)
-                spriteRenderer.flipX = true;
+                currentFlip = -1;
 
+            spriteChar.localScale = Vector3.Lerp(spriteChar.localScale, new Vector3(currentFlip, spriteChar.localScale.y, spriteChar.localScale.z), flipSpeed * Time.deltaTime);
 
             animator.SetBool("grounded", IsGrounded);
             animator.SetFloat("velocityX", Mathf.Abs(velocity.x) / maxSpeed);
