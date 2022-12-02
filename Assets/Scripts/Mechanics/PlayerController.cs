@@ -18,6 +18,8 @@ namespace Platformer.Mechanics {
         public AudioClip respawnAudio;
         public AudioClip ouchAudio;
         public bool LimitVelocity = false;
+        public TrailRenderer trail;
+        public float speedlines = 1;
 
         public CinemachineVirtualCamera vcam;
         public float camZoomA = 3.7f, camZoomB = 3.8f;
@@ -37,7 +39,7 @@ namespace Platformer.Mechanics {
         /*internal new*/
         public AudioSource audioSource;
         public Health health;
-        public bool controlEnabled = true, speedSmoke;
+        public bool controlEnabled = true, speedSmoke, IntroDone;
 
         private Color defaultColor;
         public Color chargedColor = Color.cyan;
@@ -51,6 +53,7 @@ namespace Platformer.Mechanics {
         Vector2 move;
         public SpriteRenderer spriteRenderer;
         public Animator animator;
+        public Animator intro;
         readonly PlatformerModel model = Simulation.GetModel<PlatformerModel>();
 
         public Bounds Bounds => collider2d.bounds;
@@ -59,7 +62,7 @@ namespace Platformer.Mechanics {
             transform.position = target.transform.position;
         }
 
-        float coyoteTime, maxCoyotime = 2;
+        public float airTimer, maxCoyotime = .2f;
 
         void Awake() {
             health = GetComponent<Health>();
@@ -73,6 +76,11 @@ namespace Platformer.Mechanics {
         }
 
         protected override void Update() {
+
+
+
+if(IntroDone) intro.enabled = false;
+
             if (!Application.isFocused) 
                 Time.timeScale = 0;
             else 
@@ -81,11 +89,32 @@ namespace Platformer.Mechanics {
             if (LimitVelocity&& velocity.y < -14)
                     velocity.y = -14;
 
+
+
             float vel = Mathf.Abs(velocity.y);
+            if(vel > speedlines  || vel < -speedlines){
+                trail.emitting = true;
+            }
+            else if(maxSpeed == defaultMaxSpeed * runMultiplier){
+
+            }
+            else{
+                trail.emitting = false;
+            }
+
+            
             spriteChar.localScale = new Vector3(spriteChar.localScale.x, 1 + vel / scalingOffset, 1);
             if (controlEnabled) {
                 float playerInput = Input.GetAxis("Horizontal");
                 bool falling = Mathf.Abs(vel) != 0f;
+
+
+            if(jumpState != JumpState.Grounded || falling){
+                airTimer+= Time.deltaTime;
+            }
+            else{
+                airTimer = 0;
+            }
 
                 if (!noCharge) {
                     if (chargingJump /* && !falling*/) {
@@ -104,7 +133,7 @@ namespace Platformer.Mechanics {
                 if ((Input.GetButtonUp("Jump") && (chargingJump)) || (!falling && noCharge && Input.GetButton("Jump"))) {
                     if (noCharge)
                         charge = 1;
-                    if (!falling && jumpState == JumpState.Grounded) {
+                    if (!falling && jumpState == JumpState.Grounded || airTimer < maxCoyotime) { //<<What I need for coyote
                         jumpState = JumpState.PrepareToJump;
                     }
                     else {
@@ -123,8 +152,9 @@ namespace Platformer.Mechanics {
                         runTime = 11;
                     }
                     else if (runTime == 11) {
-                        if (speedSmoke)
-                            speedClouds.Play();
+                        if (speedSmoke){
+                            emitCoolStuff();
+                        }
                         vcam.m_Lens.OrthographicSize = Mathf.Lerp(vcam.m_Lens.OrthographicSize, camZoomB, Time.deltaTime);
                     }
                     else if (runTime >= timeBeforeRun && runTime < 10) {
@@ -169,6 +199,9 @@ namespace Platformer.Mechanics {
                 move.x = 0;
             }
             UpdateJumpState();
+            if(vel > 6){
+                        vcam.m_Lens.OrthographicSize = Mathf.Lerp(vcam.m_Lens.OrthographicSize, camZoomB, Time.deltaTime);
+            }
             base.Update();
         }
 
@@ -187,14 +220,12 @@ namespace Platformer.Mechanics {
                     }
                     break;
                 case JumpState.InFlight:
-                    coyoteTime += Time.deltaTime;
                     if (IsGrounded) {
                         Schedule<PlayerLanded>().player = this;
                         jumpState = JumpState.Landed;
                     }
                     break;
                 case JumpState.Landed:
-                    coyoteTime = 0;
                     //chargingJump = false;
                     //charge = chargeStart;
                     jumpState = JumpState.Grounded;
@@ -203,8 +234,9 @@ namespace Platformer.Mechanics {
         }
 
         protected override void ComputeVelocity() {
-            if (jump && IsGrounded) {
+            if (jump && (IsGrounded || airTimer < maxCoyotime)) { //<< also needed for coyote time
                 velocity.y = jumpTakeOffSpeed * model.jumpModifier * charge;
+                airTimer = maxCoyotime;
                 jump = false;
             }
             else if (stopJump) {
@@ -227,6 +259,11 @@ namespace Platformer.Mechanics {
             targetVelocity = move * maxSpeed;
         }
 
+        void emitCoolStuff(){
+            speedClouds.Play();
+            trail.emitting = true;
+        }
+
         public enum JumpState {
             Grounded,
             PrepareToJump,
@@ -235,4 +272,5 @@ namespace Platformer.Mechanics {
             Landed
         }
     }
+    
 }

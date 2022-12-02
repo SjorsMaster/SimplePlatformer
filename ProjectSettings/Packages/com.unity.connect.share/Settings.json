@@ -6,7 +6,7 @@
             {
                 "type": "System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
                 "key": "buildOutputDirList",
-                "value": "{\"m_Value\":\"C:/Users/Nico/Desktop/WebBuild;;;;;;;;;\"}"
+                "value": "{\"m_Value\":\"/Users/nico/Desktop/FinalBuildIpromise;/Users/nico/Desktop/test2;/Users/nico/Desktop/test;C:/Users/Nico/Desktop/WebBuild;;;;;;\"}"
             }
         ]
     }

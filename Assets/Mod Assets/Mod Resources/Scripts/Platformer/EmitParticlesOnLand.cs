@@ -11,30 +11,41 @@ public class EmitParticlesOnLand : MonoBehaviour {
     public bool emitOnLand = true;
     public bool emitOnEnemyDeath = true;
 
-#if UNITY_TEMPLATE_PLATFORMER
+//#if UNITY_TEMPLATE_PLATFORMER
 
     public CinemachineVirtualCamera vcam;
     public float _time = .5f;
-    ParticleSystem p;
+    public ParticleSystem p;
 
-    void Start() {
+    void Awake() {
         p = GetComponent<ParticleSystem>();
 
         if (emitOnLand) {
             Platformer.Gameplay.PlayerLanded.OnExecute += PlayerLanded_OnExecute;
-            void PlayerLanded_OnExecute(Platformer.Gameplay.PlayerLanded obj) {
-                p.Play();
-            }
         }
 
         if (emitOnEnemyDeath) {
             Platformer.Gameplay.EnemyDeath.OnExecute += EnemyDeath_OnExecute;
-            void EnemyDeath_OnExecute(Platformer.Gameplay.EnemyDeath obj) {
-                p.Play();
-                StartCoroutine(_ProcessShake());
-            }
+        }
+    }
+            
+    void PlayerLanded_OnExecute(Platformer.Gameplay.PlayerLanded obj) {
+        p.Play();
+    }
+
+    void EnemyDeath_OnExecute(Platformer.Gameplay.EnemyDeath obj) {
+        p.Play();
+        StartCoroutine(_ProcessShake());
+    }
+
+    void OnDestroy(){
+        if (emitOnLand) {
+            Platformer.Gameplay.PlayerLanded.OnExecute -= PlayerLanded_OnExecute;
         }
 
+        if (emitOnEnemyDeath) {
+            Platformer.Gameplay.EnemyDeath.OnExecute -= EnemyDeath_OnExecute;
+        }
     }
 
 
@@ -49,6 +60,6 @@ public class EmitParticlesOnLand : MonoBehaviour {
 
 
 
-#endif
+//#endif
 
 }
